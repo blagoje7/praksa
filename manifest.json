@@ -1,0 +1,12 @@
+{
+  "name": "Praksa — evidencija uplata",
+  "short_name": "Praksa",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#1C1C1E",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

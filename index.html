@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Praksa">
+<meta name="theme-color" content="#1C1C1E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Praksa — evidencija uplata</title>
+<style>
+  :root{
+    --bg:#F2F2F7; --card:#fff; --line:#E3E3E8; --text:#1C1C1E; --muted:#8E8E93;
+    --yellow:#FFD60A; --green:#34C759; --blue:#007AFF; --red:#FF3B30;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text);
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+    touch-action:manipulation;
+  }
+  header{
+    padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--bg);
+  }
+  header h1{font-size:22px; margin:0; font-weight:700;}
+  #addBtn{
+    background:var(--blue); color:#fff; border:none; border-radius:18px;
+    padding:8px 14px; font-size:15px; font-weight:600;
+  }
+  .legend{
+    display:flex; gap:14px; padding:0 16px 8px; font-size:12px; color:var(--muted);
+    align-items:center;
+  }
+  .dot{width:12px; height:12px; border-radius:4px; display:inline-block; margin-right:4px; vertical-align:-2px; border:1px solid rgba(0,0,0,.08);}
+  .dot.e{background:#fff;} .dot.y{background:var(--yellow);} .dot.g{background:var(--green);}
+  .table-wrap{
+    flex:1; overflow:auto; -webkit-overflow-scrolling:touch;
+    background:var(--card); border-top:1px solid var(--line);
+  }
+  table{border-collapse:separate; border-spacing:0; min-width:100%;}
+  th,td{border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:0;}
+  thead th{
+    position:sticky; top:0; z-index:2; background:#FAFAFC;
+    font-size:11px; font-weight:600; color:var(--muted);
+    min-width:62px; height:44px; padding:2px 6px; text-align:center; white-space:nowrap;
+  }
+  thead th .yr{display:block; font-size:9px; font-weight:400;}
+  thead th.now{color:var(--blue); background:#EAF3FF;}
+  th.corner{position:sticky; left:0; top:0; z-index:4; background:#FAFAFC; min-width:118px; max-width:140px;}
+  td.name{
+    position:sticky; left:0; z-index:1; background:var(--card);
+    min-width:118px; max-width:140px; padding:0 10px; font-size:14px; font-weight:500;
+    height:48px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    box-shadow:2px 0 3px rgba(0,0,0,.04);
+  }
+  td.cell{min-width:62px; height:48px; background:#fff; text-align:center; font-size:15px; color:rgba(0,0,0,.45);}
+  td.cell.y{background:var(--yellow);}
+  td.cell.g{background:var(--green); color:rgba(255,255,255,.9);}
+  .empty{
+    padding:40px 24px; text-align:center; color:var(--muted); font-size:15px; line-height:1.5;
+  }
+  footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 16px calc(env(safe-area-inset-bottom) + 8px);
+    font-size:13px; color:var(--muted); background:var(--bg);
+  }
+  footer button{background:none; border:none; color:var(--blue); font-size:13px; padding:4px 6px;}
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:10;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    background:#fff; border-radius:16px; padding:20px; width:100%; max-width:320px;
+  }
+  .sheet h2{margin:0 0 14px; font-size:17px;}
+  .sheet input{
+    width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
+    border-radius:10px; margin-bottom:14px; background:#F7F7FA;
+  }
+  .sheet .row{display:flex; gap:10px;}
+  .sheet button{
+    flex:1; border:none; border-radius:10px; padding:11px 0; font-size:15px; font-weight:600;
+  }
+  .btn-primary{background:var(--blue); color:#fff;}
+  .btn-plain{background:#F0F0F4; color:var(--text);}
+  .btn-danger{background:none; color:var(--red); margin-top:12px; width:100%; padding:10px 0; font-size:15px;}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Praksa</h1>
+    <button id="addBtn">+ Pacijent</button>
+  </header>
+  <div class="legend">
+    <span><span class="dot e"></span>nije uplaćeno</span>
+    <span><span class="dot y"></span>uplaćeno</span>
+    <span><span class="dot g"></span>podignuto</span>
+  </div>
+  <div class="table-wrap" id="wrap"></div>
+  <footer>
+    <span id="count"></span>
+    <span>
+      <button id="exportBtn">Izvoz</button>
+      <button id="importBtn">Uvoz</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </span>
+  </footer>
+
+  <div class="overlay" id="modal">
+    <div class="sheet">
+      <h2 id="modalTitle">Novi pacijent</h2>
+      <input id="nameInput" placeholder="Ime pacijenta" autocomplete="off">
+      <div class="row">
+        <button class="btn-plain" id="cancelBtn">Otkaži</button>
+        <button class="btn-primary" id="saveBtn">Sačuvaj</button>
+      </div>
+      <button class="btn-danger" id="deleteBtn" hidden>Obriši pacijenta</button>
+    </div>
+  </div>
+
+<script>
+const LS = 'praksa-data-v1';
+const MESECI = ['jan','feb','mar','apr','maj','jun','jul','avg','sep','okt','nov','dec'];
+
+let state = load();
+let editingId = null;
+
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(LS));
+    if(d && Array.isArray(d.patients)) return d;
+  }catch(e){}
+  return { patients:[], marks:{}, firstMonday: mondayStr(new Date()) };
+}
+function save(){ localStorage.setItem(LS, JSON.stringify(state)); }
+
+function monday(d){
+  d = new Date(d);
+  const off = (d.getDay()+6)%7;
+  d.setDate(d.getDate()-off);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function fmt(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function mondayStr(d){ return fmt(monday(d)); }
+
+function weeks(){
+  const arr = [];
+  let d = new Date(state.firstMonday+'T00:00:00');
+  const cur = monday(new Date());
+  if(d > cur) d = new Date(cur);
+  while(d <= cur){ arr.push(new Date(d)); d.setDate(d.getDate()+7); }
+  return arr;
+}
+function weekLabel(mon){
+  const sun = new Date(mon); sun.setDate(sun.getDate()+6);
+  let t;
+  if(mon.getMonth() === sun.getMonth())
+    t = mon.getDate()+'–'+sun.getDate()+'. '+MESECI[mon.getMonth()];
+  else
+    t = mon.getDate()+'. '+MESECI[mon.getMonth()]+' – '+sun.getDate()+'. '+MESECI[sun.getMonth()];
+  return t + '<span class="yr">'+mon.getFullYear()+'</span>';
+}
+
+function render(){
+  const wrap = document.getElementById('wrap');
+  document.getElementById('count').textContent =
+    state.patients.length + (state.patients.length===1 ? ' pacijent' : ' pacijenata');
+
+  if(state.patients.length === 0){
+    wrap.innerHTML = '<div class="empty">Nema pacijenata.<br>Dodaj prvog pomoću dugmeta <b>+ Pacijent</b>.</div>';
+    return;
+  }
+  const ws = weeks();
+  const curKey = mondayStr(new Date());
+  let html = '<table><thead><tr><th class="corner">Pacijent</th>';
+  for(const w of ws){
+    const k = fmt(w);
+    html += '<th class="'+(k===curKey?'now':'')+'">'+weekLabel(w)+'</th>';
+  }
+  html += '</tr></thead><tbody>';
+  for(const p of state.patients){
+    html += '<tr><td class="name" data-edit="'+p.id+'">'+esc(p.name)+'</td>';
+    for(const w of ws){
+      const k = fmt(w);
+      const s = (state.marks[p.id]||{})[k] || 0;
+      html += '<td class="cell'+(s===1?' y':s===2?' g':'')+'" data-p="'+p.id+'" data-w="'+k+'">'
+            + (s===1?'✓':s===2?'✓✓':'') + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  wrap.scrollLeft = wrap.scrollWidth; // dovuci do tekuće nedelje
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// klik na ćeliju: prazno → žuto → zeleno → prazno
+document.getElementById('wrap').addEventListener('click', e => {
+  const cell = e.target.closest('td.cell');
+  if(cell){
+    const p = cell.dataset.p, w = cell.dataset.w;
+    if(!state.marks[p]) state.marks[p] = {};
+    const cur = state.marks[p][w] || 0;
+    const next = (cur+1) % 3;
+    if(next === 0) delete state.marks[p][w]; else state.marks[p][w] = next;
+    save();
+    cell.className = 'cell' + (next===1?' y':next===2?' g':'');
+    cell.textContent = next===1?'✓':next===2?'✓✓':'';
+    return;
+  }
+  const name = e.target.closest('td.name');
+  if(name) openModal(name.dataset.edit);
+});
+
+// modal
+const modal = document.getElementById('modal');
+const nameInput = document.getElementById('nameInput');
+function openModal(id){
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Izmena pacijenta' : 'Novi pacijent';
+  document.getElementById('deleteBtn').hidden = !id;
+  nameInput.value = id ? state.patients.find(p=>p.id===id).name : '';
+  modal.classList.add('show');
+  setTimeout(()=>nameInput.focus(), 50);
+}
+function closeModal(){ modal.classList.remove('show'); }
+
+document.getElementById('addBtn').onclick = () => openModal(null);
+document.getElementById('cancelBtn').onclick = closeModal;
+modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+
+document.getElementById('saveBtn').onclick = () => {
+  const n = nameInput.value.trim();
+  if(!n) return;
+  if(editingId){
+    state.patients.find(p=>p.id===editingId).name = n;
+  }else{
+    state.patients.push({ id: 'p'+Date.now(), name: n });
+  }
+  save(); closeModal(); render();
+};
+nameInput.addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('saveBtn').click(); });
+
+document.getElementById('deleteBtn').onclick = () => {
+  const p = state.patients.find(p=>p.id===editingId);
+  if(confirm('Obrisati pacijenta „'+p.name+'" i sve njegove oznake?')){
+    state.patients = state.patients.filter(x=>x.id!==editingId);
+    delete state.marks[editingId];
+    save(); closeModal(); render();
+  }
+};
+
+// izvoz / uvoz (rezervna kopija)
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'praksa-backup-'+fmt(new Date())+'.json';
+  a.click();
+};
+document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const d = JSON.parse(r.result);
+      if(!d || !Array.isArray(d.patients)) throw 0;
+      if(confirm('Uvoz će zameniti postojeće podatke. Nastaviti?')){
+        state = d; save(); render();
+      }
+    }catch(_){ alert('Datoteka nije važeća rezervna kopija.'); }
+    e.target.value = '';
+  };
+  r.readAsText(f);
+});
+
+render();
+
+// service worker (radi offline kada je aplikacija hostovana)
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
